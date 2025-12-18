@@ -14,10 +14,10 @@ Atomic Red Team is an open-source library of lightweight scripts that simulate r
 1. You should never run atomic test on systems you don't own or have explicit permission to test (This includes, No testing on public infrastructure and No testing on third-party platforms.)
 2. Atomic Red Team is best used in isolated and controlled test systems or virtual environments.
 (your telemetry is easier to analyze and you won't impact any business operation)
-3. Avoid real user data in test:
-   -Some Atomic Test might touch
-   *Local Accounts
-   *File Systems
+3. Avoid real user data in test.
+   Some Atomic Test might touch:
+   * Local Accounts
+   * File Systems
    * Event Logs
    * Network Connections
   4. Document Everything.
