@@ -93,3 +93,9 @@ Import-Module "C:\AtomicRedTeam\invoke-atomicredteam\Invoke-AtomicRedTeam.psd1"
 This makes the Invoke-AtomicTest command available in your session.
 
 Verify installation: You can test by running something like Get-AtomicTechnique -List | select TechniqueID, Name -First 5 to list some techniques, or Invoke-AtomicTest T1003.001 -ShowDetailsBrief to see details of a specific atomic test (for LSASS dumping, for example).
+
+2. Simulating MITRE ATT&CK Techniques
+We will run a series of atomic tests corresponding to different MITRE ATT&CK techniques across various tactics. Each test will perform a small action on the system that mimics an attacker behavior, allowing us to observe if Wazuh logs or alerts on it. Below are examples of techniques you can simulate (with their MITRE technique IDs):
+
+
+
