@@ -51,17 +51,21 @@ Download Sysmon: Get the latest Sysmon from Microsoft’s Sysinternals site. Ext
 Download a Sysmon config: Use a recommended Sysmon configuration file that defines what events to log. For example, download the SwiftOnSecurity Sysmon config or Olaf Hartong’s sysmon-modular config. Save the config as sysmonconfig.xml on the Windows host.
 
 Install Sysmon with config: Open PowerShell as Administrator and run the Sysmon install command:
+```
 .\Sysmon64.exe -accepteula -i .\sysmonconfig.xml
+```
 This installs Sysmon as a service with the given configuration. You should see a message that Sysmon installed successfully.
 
 Verify Sysmon is logging: Open Event Viewer (Windows Logs → Applications and Services Logs → Microsoft → Windows → Sysmon → Operational). You should see Sysmon events being recorded. For example, Event ID 1 (process creation) events whenever a process launches, Event ID 3 for network connections, etc. Ensure events are appearing here, as Wazuh will pull from this log.
 
 2. Configure the Wazuh Agent to Collect Sysmon Events
 Enable Sysmon log collection: On the Windows Endpoint, edit the Wazuh agent configuration file (typically: C:\Program Files (x86)\ossec-agent\ossec.conf). Within the <ossec_config> section, add a new <localfile> entry to subscribe to the Sysmon event log, like this:
+```
 <localfile>
     <location>Microsoft-Windows-Sysmon/Operational</location>
     <log_format>eventchannel</log_format>
 </localfile>
+```
 this tells the Wazuh Agent to continously read the Sysmon Operational log channel.
 
 Restart the agent: Save the config and restart the Wazuh agent service on Powershell:
@@ -77,11 +81,15 @@ With the logging and detection rules in place, we can simulate various attacks t
 
 1. Installing Atomic Red Team
 Download and Install Atomic Red Team: On the Windows VM, open Powershell as Administrator and execute the following:
+```
 git clone https://github.com/redcanaryco/atomic-red-team.git
+```
 This will download the Atomic Red Team Powershell module and the library of tomic tests to C:\AtomicRedTeam\ (by default). You should see it fetching a lot of technique scripts.
 
 Import the module (if needed): If the install doesn't auto-import, run:
+```
 Import-Module "C:\AtomicRedTeam\invoke-atomicredteam\Invoke-AtomicRedTeam.psd1"
+```
 This makes the Invoke-AtomicTest command available in your session.
 
 Verify installation: You can test by running something like Get-AtomicTechnique -List | select TechniqueID, Name -First 5 to list some techniques, or Invoke-AtomicTest T1003.001 -ShowDetailsBrief to see details of a specific atomic test (for LSASS dumping, for example).
