@@ -23,10 +23,19 @@ Atomic Red Team is an open-source library of lightweight scripts that simulate r
   4. Document Everything.
      * The documentation is useful for reporting, building repeatable processes, audit trails, and also for recovering from a possible side effect caused by the test.
 
+The documentation can include:
+   * The technique ID and test name.
+   * When and where it was executed.
+   * Who authorized it.
+   * What arguments or configurations were used.
+   * And the results of the test.
+
 # Prerequisites
 Before setting up the lab, ensure you have the following components and tools ready:
 
 Windows 10/11 Endpoint – a Windows host (virtual machine recommended) to act as the target system where attacks will be simulated.
+
+PowerShell 5.0+ or PowerShell Core
 
 Wazuh Manager & Agent – a running Wazuh Manager server, and the Wazuh Agent installed on the Windows endpoint (they should be connected). This lab assumes you have a working Wazuh 4.x environment.
 
@@ -82,7 +91,8 @@ Download and Install Atomic Red Team: On the Windows VM, open Powershell as Admi
 ```
 git clone https://github.com/redcanaryco/atomic-red-team.git
 ```
-This will download the Atomic Red Team Powershell module and the library of tomic tests to C:\AtomicRedTeam\ (by default). You should see it fetching a lot of technique scripts.
+This will download the Atomic Red Team Powershell module and the library of tomic tests to C:\AtomicRedTeam\ (by default).
+ou should see it fetching a lot of technique scripts.
 
 Import the module (if needed): If the install doesn't auto-import, run:
 ```
@@ -122,16 +132,31 @@ Invoke-AtomicTest T1003.001   # LSASS Credential Dump attempt
 Invoke-AtomicTest T1069.001   # Local Groups Enumeration
 Invoke-AtomicTest T1020      # Automated Exfiltration
 ```
-Each Invoke-AtomicTest call will perform the specific technique simulation. For example, the LSASS dump test will likely use a tool or method to open a handle to lsass.exe (which should trigger a Sysmon Event ID 10 for process access). The exfiltration test might create dummy data and attempt to copy it out. No actual malicious payloads are used – these tests are benign, though they mimic real attack footprints.
+Here are some test I executed:
+<img width="960" height="403" alt="Captura de pantalla 2025-12-13 212045" src="https://github.com/user-attachments/assets/85fda107-b377-4c23-b427-384cbf222a69" />
+
+<img width="669" height="447" alt="Captura de pantalla 2025-12-13 173053" src="https://github.com/user-attachments/assets/8751918f-c84c-42be-96fe-8192f6b287f4" />
+
+<img width="804" height="272" alt="Captura de pantalla 2025-12-14 075436" src="https://github.com/user-attachments/assets/d248d1dd-011e-4059-9db2-463c427bccf0" />
+
+<img width="911" height="264" alt="Captura de pantalla 2025-12-14 090821" src="https://github.com/user-attachments/assets/5dd87a70-15f4-41eb-be03-5380a4b8bea0" />
+
+<img width="818" height="481" alt="Captura de pantalla 2025-12-14 205910" src="https://github.com/user-attachments/assets/e31063ed-3a95-4e24-bb8f-d187d788a18f" />
+
+<img width="912" height="142" alt="Captura de pantalla 2025-12-15 010726" src="https://github.com/user-attachments/assets/e26cd7b8-8b16-483a-9199-e967b7be1e15" />
+
+
+Each Invoke-AtomicTest call will perform the specific technique simulation. For example, the LSASS dump test will likely use a tool or method to open a handle to lsass.exe (which should trigger a Sysmon Event ID 10 for process access). The exfiltration test might create dummy data and attempt to copy it out. No actual malicious payloads are used. these tests are benign, though they mimic real attack footprints.
+
 
 # Cleanup
 Many of these tests make temporary changes (like creating a user or scheduled task, or dropping a file). Atomic Red Team usually provides a cleanup command or reverses changes at the end of the test. However, it’s good practice to manually revert any changes. For instance, if a new user was created or a scheduled task added, you should remove them after testing. You can also take a VM snapshot before the tests and rollback later for a pristine state. For example you can run:
 ```
 Invoke-AtomicTest <Technique> -Cleanup
+Remove-Item $env:TEMP\lsass_*.dmp -ErrorAction Ignore
 ```
 In order to cleanup those temporary files, created users or scheduled task.
 Refer to Atomic Red Team’s documentation for specific cleanup steps for each technique (often shown with -Cleanup flags or in test details).
-
 
 # Detection and Results
 After running the atomic simulations, we can analyze how Wazuh detects these activities.  Because we configured the Wazuh agent to send detailed Sysmon logs and we have the Wazuh's built-in rules, we should see alerts corresponding to several simulared techniques.
@@ -150,6 +175,64 @@ Here are the expected outcomes and how to observe them:
 
    - Automated Exfiltration (T1020): Depending on how this atomic test works, it might use s script or utility to archive data and simulate sending it out. Check for any alerts related to data archive creation or network transfers. Wazuh’s default rules might not explicitly say "exfiltration," but you could see file creation events (Sysmon ID 11/12) or network connection events (Sysmon ID 3) in the logs. For instance, if the test used BITS or FTP, there might be an alert (e.g., Wazuh might alert on BITS jobs or unusual network connections). Ensure to inspect the Wazuh event logs for clues (e.g., search by the technique ID if our custom rule tagged it, or by process names involved).
 
-   - Other Persistence Techniques (Scheduled Task, etc): If you ran any scheduled task test as an extra step, Wazuh's built-in rule 92154 should have logged "Task Scheduler activity detected". This show detection of persistence via scheduled task creation. Simularly, if any test tried modifying the registry of persistence or executed a know LOLBin (Living-off-the-Land binary) like regsvr32, Wazuh may log those (e.g., rule 92226 for copying to startup folder, rule 92058 for application shimming, etc., as seen in the references).
+   - Other Persistence Techniques (Scheduled Task, etc): If you ran any scheduled task test as an extra step, Wazuh's built-in rule 92154 should have logged "Task Scheduler activity detected". This show detection of persistence via scheduled task creation. Simularly, if any test tried modifying the registry of persistence or executed a know LOLBin (Living-off-the-Land binary) like regsvr32, Wazuh may log those (for example, rule 92226 for copying to startup folder, rule 92058 for application shimming, etc).
+
+
+<img width="1640" height="717" alt="Captura de pantalla 2025-12-14 081544" src="https://github.com/user-attachments/assets/303d7149-2d69-4d10-8118-eadb4020d503" />
+<img width="1917" height="1074" alt="Captura de pantalla 2025-12-15 025118" src="https://github.com/user-attachments/assets/e4f9010a-f04f-4c23-b11e-82b21c79ac21" />
+
+After some time testing your dashboard may look like this:
+
+<img width="1915" height="1075" alt="Captura de pantalla 2025-12-15 024349" src="https://github.com/user-attachments/assets/7b4b0770-b57a-4054-8ec4-e4d40e429760" />
+
+ <img width="1917" height="1074" alt="Captura de pantalla 2025-12-15 025118" src="https://github.com/user-attachments/assets/3689fefb-488c-4be4-836a-9c6ef0b0ac5e" />
+ Note: I tried executing T1059.001 and after some time I forgot to cleanup the temporary files and then I checked the dashboard and It was like that, LOL.
+
+ <img width="1918" height="1077" alt="Captura de pantalla 2025-12-15 025201" src="https://github.com/user-attachments/assets/d3be2cdc-aa1c-4194-810b-b9bb9293cb36" />
+
 
 In summary, after running the simulations, you should see multiple security alerts in Wazuh corresponding to the actions performed:
+   - New user account creation (Initial Access/Persistence) – alerted by Windows Security event rules.
+   - LSASS access attempt (Credential Access) – high-severity alert by Sysmon rule.
+   - Scheduled task creation (Persistence) – if tested, alert for task scheduler.
+   - File or network events for exfiltration – logged for analysis.
+
+Each alert in Wazuh is mapped to MITRE tactics and techniques, either automatically by Wazuh or via custom rules, helping to identify the phase of the attack. For instance, the LSASS alert will be marked as Credential Access (T1003.001), the account creation as Persistence/Privilege Escalation (T1078 or T1136), etc. This mapping provides immediate context on what tactic the detected activity represents, which is valuable for analysts.
+
+It’s a good practice to investigate each alert in the Wazuh dashboard: check the full log message, process names, user accounts involved, and other data. This lab not only shows that an alert fired, but also encourages understanding why it fired. For example, if an alert says a suspicious process accessed LSASS, one can correlate that with the atomic test that was run, confirming the detection capability.
+
+# Conclusion and Next Steps
+By completing this lab, we have configured a Wazuh-monitored Windows host with enhanced logging (Sysmon) and executed simulated attacks covering multiple MITRE ATT&CK tactics. The Wazuh platform was able to capture detailed events and generate alerts for these activities, demonstrating its effectiveness in threat detection. Importantly, this lab can be expanded: you can add more Atomic Red Team tests to cover additional techniques or integrate other tools (such as Caldera or Metasploit in a controlled manner) to further enrich the simulation.
+
+For further exploration:
+   - Review the Wazuh alert logs and the MITRE ATT&CK dashboard to see how Wazuh categorizes each event. This helps in understanding detection coverage.
+   - Try tweaking or adding custom Wazuh rules for techniques that didn’t have obvious alerts (for example, command-line detection for reconnaissance commands).
+   - Update the Sysmon configuration for more verbosity or specific detections (Sysmon has many settings; a more targeted config can capture additional behaviors).
+   - Ensure to keep your lab isolated and revert snapshots as needed to clean up the changes made by atomic tests.
+
+With this repository’s materials (documentation and sample rules), others can reproduce the detection lab and learn how endpoint telemetry combined with a SIEM like Wazuh can detect adversary behavior mapped to MITRE ATT&CK. Happy testing!
+
+Author: Cristian Jimenez
+
+# Repository Structure
+```
+Wazuh-Detection-Lab-MITRE-ATTACK-Adversary-Simulation/
+├── README.md   # Proyecto de laboratorio (documentación en inglés)
+├── rules/
+│   └── Sysmonconfig.xml   # Reglas personalizadas de Sysmon
+└──  LICENSE     # Licencia de código abierto (MIT) para el proyecto
+```
+
+# Some Resources:
+
+   - Atomic Red Team GitHub Repository:
+     https://github.com/redcanaryco/atomic-red-team
+
+   - Official Atomic Red Team Website:
+     https://atomicredteam.io
+
+   - Rich and Well-Structured Documentation:
+     https://github.com/redcanaryco/atomic-red-team/wiki
+
+     - MITRE ATT&CK Framework:
+       https://attack.mitre.org/
