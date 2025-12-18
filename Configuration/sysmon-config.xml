@@ -1,0 +1,33 @@
+<Sysmon schemaversion="4.82">
+  <EventFiltering>
+    <RuleGroup name="Asignación #3" groupRelation="or">
+      <!-- Registrar creación de procesos (herramientas ofensivas y scripts) -->
+      <ProcessCreate onmatch="include" />
+
+      <!-- Registrar conexiones de red a puertos críticos (movimiento lateral, Kerberos, LDAP, SMB, WinRM) -->
+      <NetworkConnect onmatch="include">
+        <DestinationPort condition="is">445</DestinationPort>
+        <DestinationPort condition="is">5985</DestinationPort>
+        <DestinationPort condition="is">5986</DestinationPort>
+        <DestinationPort condition="is">135</DestinationPort>
+        <DestinationPort condition="is">389</DestinationPort>
+        <DestinationPort condition="is">636</DestinationPort>
+        <DestinationPort condition="is">88</DestinationPort>
+      </NetworkConnect>
+
+      <!-- Detectar accesos a procesos críticos (ej. lsass.exe para dumping de credenciales) -->
+      <ProcessAccess onmatch="include">
+        <TargetImage condition="contains">lsass.exe</TargetImage>
+      </ProcessAccess>
+
+      <!-- Detecta Named-Pipe / PSEXEC-like activity -->
+      <PipeEvent onmatch="include" />
+
+      <!-- Detectar uso de WMI para movimiento lateral -->
+      <WmiEvent onmatch="include" />
+
+      <!-- Detectar creación de hilos remotos (indicador de inyección) -->
+      <CreateRemoteThread onmatch="include" />
+    </RuleGroup>
+  </EventFiltering>
+</Sysmon>
