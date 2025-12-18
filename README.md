@@ -218,7 +218,7 @@ Author: Cristian Jimenez
 ```
 Wazuh-Detection-Lab-MITRE-ATTACK-Adversary-Simulation/
 ├── README.md   # Proyecto de laboratorio (documentación en inglés)
-├── rules/
+├── Configuration/
 │   └── Sysmonconfig.xml   # Reglas personalizadas de Sysmon
 └──  LICENSE     # Licencia de código abierto (MIT) para el proyecto
 ```
