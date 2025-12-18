@@ -22,8 +22,6 @@ Atomic Red Team is an open-source library of lightweight scripts that simulate r
    * Network Connections
   4. Document Everything.
      * The documentation is useful for reporting, building repeatable processes, audit trails, and also for recovering from a possible side effect caused by the test.
-    
-
 
 # Prerequisites (English)
 Before setting up the lab, ensure you have the following components and tools ready:
@@ -96,6 +94,43 @@ Verify installation: You can test by running something like Get-AtomicTechnique 
 
 2. Simulating MITRE ATT&CK Techniques
 We will run a series of atomic tests corresponding to different MITRE ATT&CK techniques across various tactics. Each test will perform a small action on the system that mimics an attacker behavior, allowing us to observe if Wazuh logs or alerts on it. Below are examples of techniques you can simulate (with their MITRE technique IDs):
+
+   - T1087.001 - Account Discovery (Local Accounts): Simulates an  adversary enumerating local user accounts on the machine (using net user). Atomic Red Team will run commands to list local accounts on the system. This falls under Discovery Tactics (querying system for user accounts)
+
+   - T1566.001 - Phishing: Spearphishing Attachment: Simulates a scenario where a user opens a malicious email attachment. The Atomic test may create or execute harmless file to imitate the outcome of a spear-phishing email (for example, launching a payload). This represents the Initial Access tactic.
+  
+   - T1078.001 - Valid Accounts (Local Account): Simulates use of a valid account for persistence or lateral movement. For example, the test might create a new local user account or use existing credentials. This can cover Persistence (creating backdoor accounts) and Defense Evasion (using legitimate credentials).
+  
+   - T1003.001 – OS Credential Dumping: LSASS Memory: Simulates dumping credentials from the LSASS process memory. The atomic test will attempt to access lsass.exe’s memory (without actually stealing passwords), triggering security events. This exercise demonstrates the Credential Access tactic.
+  
+   - T1069.001 – Permission Groups Discovery: Local Groups: Simulates an attacker enumerating local administrative groups and their members. The atomic test will run a command (like net localgroup administrators) to list group memberships. This is under the Discovery tactic.
+  
+   - T1020 – Automated Exfiltration: Simulates data exfiltration from the system. For example, the atomic may compress files and simulate sending them out or moving data to a staging location. This represents the Exfiltration tactic.
+
+In order to execute these test, use the *Invoke-AtomicTest* cmdlet with the technique ID. For instance, to run the Local Account Discovery test:
+
+```
+Invoke-AtomicTest T1087.001
+```
+
+You will see Atomic Red Team executing the steps (it might run one or more commands or scripts depending on the test). It should print output indicating success or what it did. Similarly, run the other tests one by one:
+
+```
+Invoke-AtomicTest T1566.001   # Spearphishing Attachment
+Invoke-AtomicTest T1078.001   # Valid Accounts (create/use local account)
+Invoke-AtomicTest T1003.001   # LSASS Credential Dump attempt
+Invoke-AtomicTest T1069.001   # Local Groups Enumeration
+Invoke-AtomicTest T1020      # Automated Exfiltration
+```
+Each Invoke-AtomicTest call will perform the specific technique simulation. For example, the LSASS dump test will likely use a tool or method to open a handle to lsass.exe (which should trigger a Sysmon Event ID 10 for process access). The exfiltration test might create dummy data and attempt to copy it out. No actual malicious payloads are used – these tests are benign, though they mimic real attack footprints.
+
+# Cleanup
+Many of these tests make temporary changes (like creating a user or scheduled task, or dropping a file). Atomic Red Team usually provides a cleanup command or reverses changes at the end of the test. However, it’s good practice to manually revert any changes. For instance, if a new user was created or a scheduled task added, you should remove them after testing. You can also take a VM snapshot before the tests and rollback later for a pristine state. For example you can run:
+```
+Invoke-AtomicTest <Technique> -Cleanup
+```
+In order to cleanup those temporary files, created users or scheduled task.
+Refer to Atomic Red Team’s documentation for specific cleanup steps for each technique (often shown with -Cleanup flags or in test details).
 
 
 
