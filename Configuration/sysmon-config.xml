@@ -1,6 +1,8 @@
 <Sysmon schemaversion="4.82">
   <EventFiltering>
-    <RuleGroup name="Asignación #3" groupRelation="or">
+    <RuleGroup name="Asignación #3" groupRelation="or"> 
+      <!-- I used this Sysmon config, basically it was given by my professor to do some detection labs-->
+      
       <!-- Registrar creación de procesos (herramientas ofensivas y scripts) -->
       <ProcessCreate onmatch="include" />
 
@@ -30,4 +32,5 @@
       <CreateRemoteThread onmatch="include" />
     </RuleGroup>
   </EventFiltering>
+
 </Sysmon>
