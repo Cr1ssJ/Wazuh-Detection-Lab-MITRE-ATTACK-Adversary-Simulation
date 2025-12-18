@@ -1,7 +1,7 @@
 # Wazuh-Detection-Lab-with-Atomic-Red-Team
 Hands-on cybersecurity lab using Wazuh SIEM/XDR to detect simulated MITRE ATT&amp;CK techniques executed with Atomic Red Team, showcasing real-world threat detection and incident response skills.
 
-# Introduction (English)
+# Introduction
 This repository provides a complete *Wazuh detection lab* to simulate adversary tactics and techniques mapped to the MITRE ATT&CK framework. Using Atomic Red Team tests alongside a Wazuh SIEM/XDR deployment, the lab demonstrates how to detect malicious behaviors on a Windows endpoint by leveraging detailed log telemetry (e.g. from Sysmon) and Wazuh’s analysis engine. The content is presented in both English and Spanish for a global reach.
 
 # What is Wazuh and Sysmon?
@@ -23,7 +23,7 @@ Atomic Red Team is an open-source library of lightweight scripts that simulate r
   4. Document Everything.
      * The documentation is useful for reporting, building repeatable processes, audit trails, and also for recovering from a possible side effect caused by the test.
 
-# Prerequisites (English)
+# Prerequisites
 Before setting up the lab, ensure you have the following components and tools ready:
 
 Windows 10/11 Endpoint – a Windows host (virtual machine recommended) to act as the target system where attacks will be simulated.
@@ -40,7 +40,7 @@ Basic Knowledge – some familiarity with Windows logging and Wazuh configuratio
 
 (Note: It’s highly recommended to use an isolated lab VM or snapshot for these simulations and not a production system, as the simulated attacks, while not truly malicious, can make changes like creating accounts or scheduled tasks.)
 
-# Lab Setup (English)
+# Lab Setup
 Follow These steps to configure the lab environment:
 1. Install and Configure Sysmon on the Windows Endpoint
 
@@ -74,7 +74,7 @@ Confirm on Manager: Verify from the Wazuh Manager that Sysmon events are being r
 3. Add Custom Wazuh Rules for MITRE Techniques (Optional)
 Wazuh comes with many built-in rules that detect common events (and even maps some to MITRE ATT&CK tactics). So in this case we won't be creating any custom rules. If you want to create custom rules you are free to do so.
 
-# Attack Simulation with Atomic Red Team (English)
+# Attack Simulation with Atomic Red Team
 With the logging and detection rules in place, we can simulate various attacks techniques on the Windows VM using Atomic Red Team. All test should be run on the Windows Endpoint (with Admin rights) and will not harm the system, but they do produce events that resemble real attacks. Remember to only run these in your lab VM (Not on actual production machines).
 
 1. Installing Atomic Red Team
@@ -133,4 +133,23 @@ In order to cleanup those temporary files, created users or scheduled task.
 Refer to Atomic Red Team’s documentation for specific cleanup steps for each technique (often shown with -Cleanup flags or in test details).
 
 
+# Detection and Results
+After running the atomic simulations, we can analyze how Wazuh detects these activities.  Because we configured the Wazuh agent to send detailed Sysmon logs and we have the Wazuh's built-in rules, we should see alerts corresponding to several simulared techniques.
 
+Here are the expected outcomes and how to observe them:
+
+   - Wazuh Alerts in Dashboard: Open Wazuh Dashboard and navigate to Security Events or MITRE ATT&CK view. Wazuh's MITRE ATT&CK module can map alerts to tactics and techniques. You should see alerts corresponding to the techniques executed. For example, the MITRE view might highlight T1003 for Credential Access, T1087 for Discovery, etc, if those alerts were generated.
+
+   - Account Creation (T1078/T1136): When the atomic test created a new user, Windows generated event logs ( for example, Event ID 4720 in the Security log). Wazuh should have captured this and triggered an alert like “User account created” (rule 60109). In the alert data, you may find the new username. This indicates Persistence via Valid Accounts was simulated.
+
+   - LSASS Access (T1003.001): The LSASS memory access attempt triggers Sysmon Event ID 10. Wazuh’s built-in rule 92900 is designed to detect this, and our custom rule 110003 as well. You should see an alert about a process accessing LSASS (often message like “LSASS process was accessed by [ProcessName]… possible credential dump”). The alert will be tagged with MITRE T1003.001 (either by built-in mapping or if you have created a custom rule). This confirms the credential dumping simulation was caught. According to Wazuh documentation, rule 92900 and 92403 are default rules that cover unauthorized LSASS access attempts
+
+   - Phishing/Spearphishing (T1566.001): This one might not generate a very explicit alert unless the simulated payload triggers something. Check the Sysmon Process Create events around the time you ran the spearphishing test. For example, if you created a custom rule you may see the explicit alert or a related Wazuh rule might have fired. Also, Windows Defender or other built-in tools might log events. In our lab, focus on Sysmon logs and Wazuh default configuration and see if any suspicious process executions were captured (like a Word or script process).
+
+   - Local Groups Enumeration (T1069.001): We can look for process creation events for the commands run (like net.exe or others), By default, Wazuh might not have a specific rule for this, but you will see the event in the Wazuh event index (Sysmon Event ID 1 for the enumeration command). If desired, you could create a custom rule to flag commands like "net localgroup" usage. Otherwise, this can be observed manually in the log data.
+
+   - Automated Exfiltration (T1020): Depending on how this atomic test works, it might use s script or utility to archive data and simulate sending it out. Check for any alerts related to data archive creation or network transfers. Wazuh’s default rules might not explicitly say "exfiltration," but you could see file creation events (Sysmon ID 11/12) or network connection events (Sysmon ID 3) in the logs. For instance, if the test used BITS or FTP, there might be an alert (e.g., Wazuh might alert on BITS jobs or unusual network connections). Ensure to inspect the Wazuh event logs for clues (e.g., search by the technique ID if our custom rule tagged it, or by process names involved).
+
+   - Other Persistence Techniques (Scheduled Task, etc): If you ran any scheduled task test as an extra step, Wazuh's built-in rule 92154 should have logged "Task Scheduler activity detected". This show detection of persistence via scheduled task creation. Simularly, if any test tried modifying the registry of persistence or executed a know LOLBin (Living-off-the-Land binary) like regsvr32, Wazuh may log those (e.g., rule 92226 for copying to startup folder, rule 92058 for application shimming, etc., as seen in the references).
+
+In summary, after running the simulations, you should see multiple security alerts in Wazuh corresponding to the actions performed:
